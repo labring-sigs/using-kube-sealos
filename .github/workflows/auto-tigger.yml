@@ -8,13 +8,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      KUBECONFIG: ${{ runner.temp }}/kubeconfig
+      KUBECONFIG: /tmp/${{ github.run_id }}/kubeconfig
     steps:
       - uses: actions/checkout@v4
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
       - name: Write kubeconfig
-        run: echo "${KUBECONFIG_B64}" | base64 -d > "$KUBECONFIG"
+        run: | 
+          mkdir -p "$(dirname "$KUBECONFIG")"
+          echo "${KUBECONFIG_B64}" | base64 -d > "$KUBECONFIG"
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
       - name: Sanity check
