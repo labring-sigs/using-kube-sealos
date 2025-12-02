@@ -1,0 +1,23 @@
+name: Deploy with kubectl
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFIG: ${{ runner.temp }}/kubeconfig
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+      - name: Write kubeconfig
+        run: echo "${KUBECONFIG_B64}" | base64 -d > "$KUBECONFIG"
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+      - name: Sanity check
+        run: kubectl get pod
+      - name: Deploy
+        run: kubectl apply -f k8s/
