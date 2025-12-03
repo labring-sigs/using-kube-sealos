@@ -186,11 +186,11 @@ jobs:
           echo "| Deployment Type | ✅ $([ "$APP_EXISTS" = "true" ] && echo "Updated" || echo "Created") | App $([ "$APP_EXISTS" = "true" ] && echo "updated" || echo "created") successfully |" >> $GITHUB_STEP_SUMMARY
 
           if [ "$FINAL_ADDR" != "Not Available" ] && [ "$FINAL_ADDR" != "Provisioning..." ] && [ -n "$FINAL_ADDR" ]; then
-            echo "| Public Access | ✅ Available | [https://$FINAL_ADDR](https://$FINAL_ADDR) |" >> $GITHUB_STEP_SUMMARY
+            echo "| Public Access | ✅ Available | [$FINAL_ADDR]($FINAL_ADDR) |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "### 🌐 Access Your Application" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Public URL:** https://$FINAL_ADDR" >> $GITHUB_STEP_SUMMARY
+            echo "**Public URL:** $FINAL_ADDR" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "You can access your application by clicking the link above." >> $GITHUB_STEP_SUMMARY
           elif [ "$FINAL_ADDR" = "Provisioning..." ]; then
