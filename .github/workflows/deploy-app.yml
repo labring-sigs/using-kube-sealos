@@ -1,0 +1,108 @@
+name: Deploy with openapi
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFIG: /tmp/${{ github.run_id }}/kubeconfig
+      API_URL: https://applaunchpad.hzh.sealos.run/api/v2alpha/app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch token
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          echo "${KUBECONFIG_B64}" | base64 -d > "/tmp/kubeconfig"
+          python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$(cat ~/.kube/sealos-<cluster>.config)"  > /tmp/token.txt
+
+      - name: Read app configuration
+        id: app-config
+        run: |
+          if [ -f "applaunchpad/body.json" ]; then
+            echo "app_name=$(jq -r '.name' applaunchpad/body.json)" >> $GITHUB_OUTPUT
+            echo "app_config=$(cat applaunchpad/body.json)" >> $GITHUB_OUTPUT
+          else
+            echo "Error: applaunchpad/body.json file not found."
+            exit 1
+          fi
+
+      - name: Check if app exists
+        id: check-app
+        run: |
+          TOKEN=$(cat /tmp/token.txt)
+          APP_NAME="${{ steps.app-config.outputs.app_name }}"
+
+          echo "Checking if app '${APP_NAME}' exists..."
+
+          RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/response.json \
+            -H "Authorization: ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            "${API_URL}/${APP_NAME}")
+
+          HTTP_STATUS="${RESPONSE: -3}"
+
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "App '${APP_NAME}' exists"
+            echo "app_exists=true" >> $GITHUB_OUTPUT
+            echo "existing_app=$(cat /tmp/response.json)" >> $GITHUB_OUTPUT
+          elif [ "$HTTP_STATUS" = "404" ]; then
+            echo "App '${APP_NAME}' does not exist"
+            echo "app_exists=false" >> $GITHUB_OUTPUT
+          else
+            echo "Error checking app existence: HTTP $HTTP_STATUS"
+            echo "Response: $(cat /tmp/response.json)"
+            exit 1
+          fi
+
+      - name: Create or update app
+        run: |
+          TOKEN=$(cat /tmp/token.txt)
+          APP_CONFIG="${{ steps.app-config.outputs.app_config }}"
+          APP_EXISTS="${{ steps.check-app.outputs.app_exists }}"
+
+          if [ "$APP_EXISTS" = "true" ]; then
+            echo "Updating existing app..."
+            APP_NAME="${{ steps.app-config.outputs.app_name }}"
+
+            RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/update_response.json \
+              -X PATCH \
+              -H "Authorization: ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "${APP_CONFIG}" \
+              "${API_URL}/${APP_NAME}")
+
+            HTTP_STATUS="${RESPONSE: -3}"
+
+            if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
+              echo "App updated successfully"
+              echo "Response: $(cat /tmp/update_response.json)"
+            else
+              echo "Error updating app: HTTP $HTTP_STATUS"
+              echo "Response: $(cat /tmp/update_response.json)"
+              exit 1
+            fi
+          else
+            echo "Creating new app..."
+
+            RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/create_response.json \
+              -X POST \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "${APP_CONFIG}" \
+              "${API_URL}")
+
+            HTTP_STATUS="${RESPONSE: -3}"
+
+            if [ "$HTTP_STATUS" = "201" ] || [ "$HTTP_STATUS" = "200" ]; then
+              echo "App created successfully"
+              echo "Response: $(cat /tmp/create_response.json)"
+            else
+              echo "Error creating app: HTTP $HTTP_STATUS"
+              echo "Response: $(cat /tmp/create_response.json)"
+              exit 1
+            fi
+          fi

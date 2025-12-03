@@ -1,0 +1,27 @@
+{
+  "name": "hello-world-app",
+  "image": {
+    "imageName": "nginx"
+  },
+  "launchCommand": {},
+  "quota": {
+    "replicas": 1,
+    "cpu": 0.2,
+    "memory": 0.5,
+    "gpu": {
+      "vendor": "nvidia",
+      "type": "",
+      "amount": 0
+    }
+  },
+  "ports": [
+    {
+      "number": 80,
+      "protocol": "http",
+      "isPublic": true
+    }
+  ],
+  "env": [],
+  "storage": [],
+  "configMap": []
+}
