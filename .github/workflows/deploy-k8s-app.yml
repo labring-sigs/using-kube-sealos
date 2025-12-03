@@ -1,0 +1,23 @@
+name: Deploy app with kubectl
+
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      KUBECONFIG: /tmp/${{ github.run_id }}/kubeconfig
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+      - name: Write kubeconfig
+        run: | 
+          mkdir -p "$(dirname "$KUBECONFIG")"
+          echo "${KUBECONFIG_B64}" | base64 -d > "$KUBECONFIG"
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+      - name: Sanity check
+        run: kubectl get pod
+      - name: Deploy
+        run: kubectl apply -f applaunchpad/hello-world.yaml
