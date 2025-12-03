@@ -23,10 +23,11 @@ jobs:
         id: app-config
         run: |
           APP_NAME=$(jq -r '.name' applaunchpad/body.json)
-          APP_CONFIG=$(jq -c . applaunchpad/body.json)
+
+          # Store the JSON content to a temporary file to avoid encoding issues
+          cp applaunchpad/body.json /tmp/app_config.json
 
           echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
-          echo "app_config=$APP_CONFIG" >> $GITHUB_OUTPUT
 
       - name: Check if app exists
         id: check-app
@@ -59,7 +60,7 @@ jobs:
       - name: Create or update app
         run: |
           TOKEN=$(cat /tmp/token.txt)
-          APP_CONFIG="${{ steps.app-config.outputs.app_config }}"
+          APP_CONFIG=$(cat /tmp/app_config.json)
           APP_EXISTS="${{ steps.check-app.outputs.app_exists }}"
 
           if [ "$APP_EXISTS" = "true" ]; then
