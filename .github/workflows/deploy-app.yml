@@ -106,3 +106,112 @@ jobs:
               exit 1
             fi
           fi
+
+      - name: Wait and get app public address
+        id: get-public-address
+        run: |
+          TOKEN=$(cat /tmp/token.txt)
+          APP_NAME="${{ steps.app-config.outputs.app_name }}"
+
+          echo "Waiting for app to be ready and getting public address..."
+
+          # Wait for app to be provisioned (retry up to 10 times, 30 seconds each)
+          for i in {1..10}; do
+            echo "Attempt $i: Getting app status..."
+
+            RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/app_status.json \
+              -H "Authorization: ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              "${API_URL}/${APP_NAME}")
+
+            HTTP_STATUS="${RESPONSE: -3}"
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "App status retrieved successfully"
+
+              # Extract public address and custom domain
+              PUBLIC_ADDR=$(jq -r '.ports[0].publicAddress // empty' /tmp/app_status.json 2>/dev/null || echo "")
+              CUSTOM_DOMAIN=$(jq -r '.ports[0].customDomain // empty' /tmp/app_status.json 2>/dev/null || echo "")
+              APP_STATUS=$(jq -r '.status // empty' /tmp/app_status.json 2>/dev/null || echo "")
+
+              echo "App status: $APP_STATUS"
+              echo "Public address: $PUBLIC_ADDR"
+              echo "Custom domain: $CUSTOM_DOMAIN"
+
+              # Use custom domain if available, otherwise use public address
+              if [ -n "$CUSTOM_DOMAIN" ] && [ "$CUSTOM_DOMAIN" != "null" ]; then
+                FINAL_ADDR="$CUSTOM_DOMAIN"
+                echo "Using custom domain: $FINAL_ADDR"
+                break
+              elif [ -n "$PUBLIC_ADDR" ] && [ "$PUBLIC_ADDR" != "null" ]; then
+                FINAL_ADDR="$PUBLIC_ADDR"
+                echo "Using public address: $FINAL_ADDR"
+                break
+              elif [ "$APP_STATUS" = "ready" ]; then
+                echo "App is ready but no public address found"
+                FINAL_ADDR="Not Available"
+                break
+              else
+                echo "App not ready yet, waiting..."
+                sleep 30
+              fi
+            else
+              echo "Error getting app status: HTTP $HTTP_STATUS"
+              if [ $i -eq 10 ]; then
+                echo "Final attempt failed, exiting..."
+                exit 1
+              fi
+              sleep 30
+            fi
+          done
+
+          if [ -z "$FINAL_ADDR" ]; then
+            FINAL_ADDR="Provisioning..."
+          fi
+
+          echo "final_address=$FINAL_ADDR" >> $GITHUB_OUTPUT
+
+      - name: Output deployment summary
+        run: |
+          APP_NAME="${{ steps.app-config.outputs.app_name }}"
+          FINAL_ADDR="${{ steps.get-public-address.outputs.final_address }}"
+          APP_EXISTS="${{ steps.check-app.outputs.app_exists }}"
+
+          echo "## 🚀 App Launchpad Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| App Name | ✅ $APP_NAME | Successfully deployed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployment Type | ✅ $([ "$APP_EXISTS" = "true" ] && echo "Updated" || echo "Created") | App $([ "$APP_EXISTS" = "true" ] && echo "updated" || echo "created") successfully |" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$FINAL_ADDR" != "Not Available" ] && [ "$FINAL_ADDR" != "Provisioning..." ] && [ -n "$FINAL_ADDR" ]; then
+            echo "| Public Access | ✅ Available | [https://$FINAL_ADDR](https://$FINAL_ADDR) |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 🌐 Access Your Application" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Public URL:** https://$FINAL_ADDR" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "You can access your application by clicking the link above." >> $GITHUB_STEP_SUMMARY
+          elif [ "$FINAL_ADDR" = "Provisioning..." ]; then
+            echo "| Public Access | ⏳ Provisioning | Service is still being provisioned... |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ⏳ Provisioning in Progress" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Your application is still being provisioned. Public access will be available shortly." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "You can check the status later using the App Launchpad interface." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Public Access | ❌ Not Available | No public address assigned |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Public Access Unavailable" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The application was deployed but no public address was assigned." >> $GITHUB_STEP_SUMMARY
+            echo "Please check the App Launchpad interface for more details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Deployment Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**API Endpoint:** ${{ env.API_URL }}" >> $GITHUB_STEP_SUMMARY
+          echo "**App Name:** $APP_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
