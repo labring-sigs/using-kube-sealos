@@ -44,8 +44,8 @@ jobs:
 
           HTTP_STATUS="${RESPONSE: -3}"
 
-          if [ "$HTTP_STATUS" = "200" ]; then
-            echo "App '${APP_NAME}' exists"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "App '${APP_NAME}' exists (HTTP $HTTP_STATUS)"
             echo "app_exists=true" >> $GITHUB_OUTPUT
             echo "existing_app=$(cat /tmp/response.json)" >> $GITHUB_OUTPUT
           elif [ "$HTTP_STATUS" = "404" ]; then
@@ -76,8 +76,9 @@ jobs:
 
             HTTP_STATUS="${RESPONSE: -3}"
 
-            if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
-              echo "App updated successfully"
+            # Check if HTTP status is in success range (200-299) or redirect range (300-399)
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+              echo "App updated successfully (HTTP $HTTP_STATUS)"
               echo "Response: $(cat /tmp/update_response.json)"
             else
               echo "Error updating app: HTTP $HTTP_STATUS"
@@ -96,8 +97,9 @@ jobs:
 
             HTTP_STATUS="${RESPONSE: -3}"
 
-            if [ "$HTTP_STATUS" = "201" ] || [ "$HTTP_STATUS" = "200" ]; then
-              echo "App created successfully"
+            # Check if HTTP status is in success range (200-299) or redirect range (300-399)
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 400 ]; then
+              echo "App created successfully (HTTP $HTTP_STATUS)"
               echo "Response: $(cat /tmp/create_response.json)"
             else
               echo "Error creating app: HTTP $HTTP_STATUS"
@@ -125,8 +127,8 @@ jobs:
 
             HTTP_STATUS="${RESPONSE: -3}"
 
-            if [ "$HTTP_STATUS" = "200" ]; then
-              echo "App status retrieved successfully"
+            if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+              echo "App status retrieved successfully (HTTP $HTTP_STATUS)"
 
               # Extract public address and custom domain
               PUBLIC_ADDR=$(jq -r '.ports[0].publicAddress // empty' /tmp/app_status.json 2>/dev/null || echo "")
