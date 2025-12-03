@@ -3,26 +3,35 @@
   "image": {
     "imageName": "nginx"
   },
-  "launchCommand": {},
+  "launchCommand": {
+    "command": "",
+    "args": ""
+  },
   "quota": {
     "replicas": 1,
     "cpu": 0.2,
-    "memory": 0.5,
-    "gpu": {
-      "vendor": "nvidia",
-      "type": "",
-      "amount": 0
-    }
+    "memory": 0.5
   },
   "ports": [
     {
       "number": 80,
-      "name": "ulzhfcpltnca",
+      "portName": "ulzhfcpltnca",
       "protocol": "http",
-      "isPublic": true
+      "privateAddress": "http://hello-world-80-yktckrlupsqm-service.ns-ag1a4ovc:80",
+      "publicAddress": "https://ebjmourctqie.sealoshzh.site"
     }
   ],
   "env": [],
-  "storage": [],
-  "configMap": []
+  "storage": [
+    {
+      "name": "vn-data",
+      "path": "/data",
+      "size": "1Gi"
+    }
+  ],
+  "configMap": [],
+  "resourceType": "statefulset",
+  "id": "f6811fb6-0d7b-4b2a-bd5c-2a3a6ba24a50",
+  "createdAt": "2025-12-03 07:16",
+  "status": "running"
 }

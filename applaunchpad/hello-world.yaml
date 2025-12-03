@@ -14,14 +14,14 @@ spec:
     app: hello-world
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: hello-world
   annotations:
     originImageName: nginx
     deploy.cloud.sealos.io/minReplicas: '1'
     deploy.cloud.sealos.io/maxReplicas: '1'
-    deploy.cloud.sealos.io/resize: 0Gi
+    deploy.cloud.sealos.io/resize: 1Gi
   labels:
     app: hello-world
     cloud.sealos.io/app-deploy-manager: hello-world
@@ -31,18 +31,20 @@ spec:
   selector:
     matchLabels:
       app: hello-world
-  strategy:
+  updateStrategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+      maxUnavailable: 50%
+  minReadySeconds: 10
+  serviceName: hello-world-80-yktckrlupsqm-service
   template:
     metadata:
       labels:
         app: hello-world
-        restartTime: '20251203151456'
+        restartTime: '20251203151655'
     spec:
       automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 10
       containers:
         - name: hello-world
           image: nginx
@@ -58,8 +60,22 @@ spec:
             - containerPort: 80
               name: ulzhfcpltnca
           imagePullPolicy: Always
-          volumeMounts: []
+          volumeMounts:
+            - name: vn-data
+              mountPath: /data
       volumes: []
+  volumeClaimTemplates:
+    - metadata:
+        annotations:
+          path: /data
+          value: '1'
+        name: vn-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
