@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hello-world
+  name: hello-nginx
   labels:
-    app: hello-world
+    app: hello-nginx
 spec:
   replicas: 1
   revisionHistoryLimit: 1
   selector:
     matchLabels:
-      app: hello-world
+      app: hello-nginx
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,11 +18,11 @@ spec:
   template:
     metadata:
       labels:
-        app: hello-world
+        app: hello-nginx
     spec:
       automountServiceAccountToken: false
       containers:
-        - name: hello-world
+        - name: hello-nginx
           image: nginx
           env: []
           resources:
