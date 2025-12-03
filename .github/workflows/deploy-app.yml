@@ -8,7 +8,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      KUBECONFIG: /tmp/${{ github.run_id }}/kubeconfig
+      KUBECONFIG: /tmp/kubeconfig
       API_URL: https://applaunchpad.hzh.sealos.run/api/v2alpha/app
     steps:
       - uses: actions/checkout@v4
@@ -16,19 +16,14 @@ jobs:
         env:
           KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
         run: |
-          echo "${KUBECONFIG_B64}" | base64 -d > "/tmp/kubeconfig"
-          python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$(cat ~/.kube/sealos-<cluster>.config)"  > /tmp/token.txt
+          echo "${KUBECONFIG_B64}" | base64 -d > "${KUBECONFIG}"
+          python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$(cat ${KUBECONFIG} )"  > /tmp/token.txt
 
       - name: Read app configuration
         id: app-config
         run: |
-          if [ -f "applaunchpad/body.json" ]; then
-            echo "app_name=$(jq -r '.name' applaunchpad/body.json)" >> $GITHUB_OUTPUT
-            echo "app_config=$(cat applaunchpad/body.json)" >> $GITHUB_OUTPUT
-          else
-            echo "Error: applaunchpad/body.json file not found."
-            exit 1
-          fi
+          echo "app_name=$(jq -r '.name' applaunchpad/body.json)" >> $GITHUB_OUTPUT
+          echo "app_config=$(cat applaunchpad/body.json)" >> $GITHUB_OUTPUT
 
       - name: Check if app exists
         id: check-app
