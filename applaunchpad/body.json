@@ -1,5 +1,5 @@
 {
-  "name": "hello-world-app",
+  "name": "hello-world",
   "image": {
     "imageName": "nginx"
   },
@@ -17,6 +17,7 @@
   "ports": [
     {
       "number": 80,
+      "name": "ifwndjuyiyvv",
       "protocol": "http",
       "isPublic": true
     }

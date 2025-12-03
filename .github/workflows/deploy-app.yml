@@ -1,4 +1,4 @@
-name: Deploy with openapi
+name: Deploy with app openapi
 
 on:
   push:
