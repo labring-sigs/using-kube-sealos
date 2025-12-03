@@ -22,8 +22,11 @@ jobs:
       - name: Read app configuration
         id: app-config
         run: |
-          echo "app_name=$(jq -r '.name' applaunchpad/body.json)" >> $GITHUB_OUTPUT
-          echo "app_config=$(cat applaunchpad/body.json)" >> $GITHUB_OUTPUT
+          APP_NAME=$(jq -r '.name' applaunchpad/body.json)
+          APP_CONFIG=$(jq -c . applaunchpad/body.json)
+
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          echo "app_config=$APP_CONFIG" >> $GITHUB_OUTPUT
 
       - name: Check if app exists
         id: check-app
