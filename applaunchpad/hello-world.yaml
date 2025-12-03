@@ -1,27 +1,27 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: hello-world-rzzdmyxaxgxj
+  name: hello-world-80-yktckrlupsqm-service
   labels:
     cloud.sealos.io/app-deploy-manager: hello-world
 spec:
   ports:
     - port: 80
       targetPort: 80
-      name: ifwndjuyiyvv
+      name: ulzhfcpltnca
       protocol: TCP
   selector:
     app: hello-world
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: hello-world
   annotations:
     originImageName: nginx
     deploy.cloud.sealos.io/minReplicas: '1'
     deploy.cloud.sealos.io/maxReplicas: '1'
-    deploy.cloud.sealos.io/resize: 1Gi
+    deploy.cloud.sealos.io/resize: 0Gi
   labels:
     app: hello-world
     cloud.sealos.io/app-deploy-manager: hello-world
@@ -31,20 +31,18 @@ spec:
   selector:
     matchLabels:
       app: hello-world
-  updateStrategy:
+  strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 50%
-  minReadySeconds: 10
-  serviceName: hello-world-rzzdmyxaxgxj
+      maxUnavailable: 0
+      maxSurge: 1
   template:
     metadata:
       labels:
         app: hello-world
-        restartTime: '20251203150639'
+        restartTime: '20251203151456'
     spec:
       automountServiceAccountToken: false
-      terminationGracePeriodSeconds: 10
       containers:
         - name: hello-world
           image: nginx
@@ -52,38 +50,24 @@ spec:
           resources:
             requests:
               cpu: 20m
-              memory: 25Mi
+              memory: 51Mi
             limits:
               cpu: 200m
-              memory: 256Mi
+              memory: 512Mi
           ports:
             - containerPort: 80
-              name: ifwndjuyiyvv
+              name: ulzhfcpltnca
           imagePullPolicy: Always
-          volumeMounts:
-            - name: vn-data
-              mountPath: /data
+          volumeMounts: []
       volumes: []
-  volumeClaimTemplates:
-    - metadata:
-        annotations:
-          path: /data
-          value: '1'
-        name: vn-data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: network-xrgzlpxzraht
+  name: hello-world-80-zgzmibfjagut-network
   labels:
     cloud.sealos.io/app-deploy-manager: hello-world
-    cloud.sealos.io/app-deploy-manager-domain: blzpdakvvnua
+    cloud.sealos.io/app-deploy-manager-domain: ebjmourctqie
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/proxy-body-size: 32m
@@ -98,17 +82,17 @@ metadata:
       large_client_header_buffers 4 128k;
 spec:
   rules:
-    - host: blzpdakvvnua.sealoshzh.site
+    - host: ebjmourctqie.sealoshzh.site
       http:
         paths:
           - pathType: Prefix
             path: /
             backend:
               service:
-                name: hello-world-rzzdmyxaxgxj
+                name: hello-world-80-yktckrlupsqm-service
                 port:
                   number: 80
   tls:
     - hosts:
-        - blzpdakvvnua.sealoshzh.site
+        - ebjmourctqie.sealoshzh.site
       secretName: wildcard-cert
